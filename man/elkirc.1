@@ -7,7 +7,12 @@ elkirc \- ultra\-lightweight ELKS\-first IRC client
 .B elkirc
 .RB [ -d | --debug ]
 .RB [ -c | --color ]
-.I server port nick
+.RB [ -s
+.IR server ]
+.RB [ -p
+.IR port ]
+.RB [ -n
+.IR nick ]
 
 .SH DESCRIPTION
 elkirc is a minimal, portable IRC client intended to run on resource-constrained systems (ELKS) while remaining usable on modern platforms.
@@ -48,37 +53,85 @@ JOIN messages: Entire message in green
 Other server messages: Messages starting with \fB:\fR in grey
 .RE
 
+.TP
+.BR -s ", " server
+IRC server hostname. If not specified, elkirc starts without connecting. You can connect later using the \fB/connect\fR command.
+
+.TP
+.BR -p ", " port
+IRC server port. Defaults to 6667 if a server is specified with \fB-s\fR. Ignored if no server is specified.
+
+.TP
+.BR -n ", " nick
+Your IRC nickname. If not specified, elkirc uses your system username (from \fB$USER\fR environment variable or \fBgetpwuid()\fR).
+
 .SH COMMANDS
 The following commands are typed at the prompt (start with a `/`):
 
 .TP
-.B /nick <newnick>
+.BI /connect " server" " [port]"
+.BI /c " server" " [port]"
+Connect to an IRC server. If port is not specified, defaults to 6667. This command only works when not already connected.
+
+.TP
+.BI /nick " newnick"
+.BI /n " newnick"
 Change your nickname.
 
 .TP
-.B /join <#channel|nick>
+.BI /join " #channel|nick"
+.BI /j " #channel|nick"
 Join a channel or switch to a private target.
 
 .TP
-.B /msg <nick> <message>
-Send a private message to `nick`.
+.BI /leave " [target]"
+.BI /l " [target]"
+.BI /part " [target]"
+.BI /p " [target]"
+Leave a channel or private conversation. If no target is specified, leaves the current target. For channels (starting with \fB#\fR), sends a PART command to the server. After leaving, the target automatically returns to your nick.
 
 .TP
-.B /raw <text>
+.BI /msg " nick message"
+Send a private message to \fInick\fR.
+
+.TP
+.BI /raw " text"
 Send raw IRC text to the server.
 
 .TP
 .B /quit
-Send QUIT and exit.
+.B /q
+Disconnect from the server (sends QUIT command) but does not exit elkirc. After disconnecting, the target automatically returns to your nick.
 
 .TP
 .B /exit
-Exit immediately without sending QUIT.
+.B /e
+Exit elkirc immediately. If connected, sends QUIT command before exiting.
 
 .SH EXAMPLES
-Connect to libera.chat:
-.B
-elkirc irc.libera.chat 6667 alice
+Connect to libera.chat with all options:
+.RS
+.PP
+.B elkirc -d -c -s irc.libera.chat -p 6667 -n alice
+.RE
+.PP
+Connect with minimal options (uses default port 6667 and system username):
+.RS
+.PP
+.B elkirc -s irc.libera.chat
+.RE
+.PP
+Start without connecting (connect later with /connect):
+.RS
+.PP
+.B elkirc -n alice
+.RE
+.PP
+Start with system username, no connection:
+.RS
+.PP
+.B elkirc
+.RE
 
 .SH BUGS
 Minimal feature set: no IPv6, no TLS, no message history.
