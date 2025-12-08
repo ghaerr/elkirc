@@ -1,0 +1,51 @@
+.TH ELKIRC 1 "8 December 2025" "elkirc 0.1" "User Commands"
+
+.SH NAME
+elkirc \- ultra\-lightweight ELKS\-first IRC client
+
+.SH SYNOPSIS
+.B elkirc
+.I server port nick
+
+.SH DESCRIPTION
+elkirc is a minimal, portable IRC client intended to run on resource-constrained systems (ELKS) while remaining usable on modern platforms.
+It uses a single TCP connection and `select()` to multiplex stdin and the network socket.
+
+.SH COMMANDS
+The following commands are typed at the prompt (start with a `/`):
+
+.TP
+.B /nick <newnick>
+Change your nickname.
+
+.TP
+.B /join <#channel|nick>
+Join a channel or switch to a private target.
+
+.TP
+.B /msg <nick> <message>
+Send a private message to `nick`.
+
+.TP
+.B /raw <text>
+Send raw IRC text to the server.
+
+.TP
+.B /quit
+Send QUIT and exit.
+
+.TP
+.B /exit
+Exit immediately without sending QUIT.
+
+.SH EXAMPLES
+Connect to libera.chat:
+.B
+elkirc irc.libera.chat 6667 alice
+
+.SH BUGS
+Minimal feature set: no IPv6, no TLS, no message history.
+
+.SH AUTHOR
+Written and maintained by Jose Beneyto (sepen@crux-arm.nu).
+
