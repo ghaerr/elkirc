@@ -97,9 +97,13 @@ int main(int argc, char *argv[])
                 if (netpos < (BUF - 1)) netbuf[netpos++] = r[i];
                 if (r[i] == '\n') {
                     netbuf[netpos] = 0;
-                    /* print the server line */
-                    fputs(netbuf, stdout);
-                    fflush(stdout);
+                    /* check if this is a PING message - hide it from output */
+                    int is_ping = (strstr(netbuf, "PING") != NULL);
+                    /* print the server line (unless it's a PING) */
+                    if (!is_ping) {
+                        fputs(netbuf, stdout);
+                        fflush(stdout);
+                    }
                     netpos = 0;
                     /* let network handler inspect (PING) */
                     handle_line(sock, netbuf);
