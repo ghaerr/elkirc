@@ -25,17 +25,34 @@
 #include "ui.h"
 
 char current_target[BUF] = {0};
+int debug_mode = 0;
 
 int main(int argc, char *argv[])
 {
-    if (argc < 4) {
-        printf("Usage: %s <server> <port> <nick>\n", argv[0]);
+    const char *server;
+    const char *port;
+    const char *nick;
+    int arg_idx = 1;
+
+    /* check for debug flag - optimize for ELKS: check -d first (shorter) */
+    if (argc > 1) {
+        if (argv[arg_idx][0] == '-' && argv[arg_idx][1] == 'd' && argv[arg_idx][2] == '\0') {
+            debug_mode = 1;
+            arg_idx++;
+        } else if (strcmp(argv[arg_idx], "--debug") == 0) {
+            debug_mode = 1;
+            arg_idx++;
+        }
+    }
+
+    if (argc < (arg_idx + 3)) {
+        printf("Usage: %s [-d|--debug] <server> <port> <nick>\n", argv[0]);
         return 1;
     }
 
-    const char *server = argv[1];
-    const char *port   = argv[2];
-    const char *nick   = argv[3];
+    server = argv[arg_idx];
+    port   = argv[arg_idx + 1];
+    nick   = argv[arg_idx + 2];
 
     if (ui_init() != 0) {
         fprintf(stderr, "UI init failed\n");
@@ -44,11 +61,13 @@ int main(int argc, char *argv[])
 
     int sock = connect_simple(server, port);
     if (sock < 0) {
-        printf("Connection failed.\n");
+        printf("Error: Failed to connect to %s:%s.\n", server, port);
         return 1;
     }
 
-    /* register */
+    printf("Connected to %s:%s.\n", server, port);
+
+    printf("Registering with the server...\n");
     {
         char tmp[BUF];
         /* NICK */
@@ -88,7 +107,7 @@ int main(int argc, char *argv[])
             char r[64];
             int n = recv(sock, r, sizeof(r) - 1, 0);
             if (n <= 0) {
-                printf("\n** server closed connection **\n");
+                printf("\nError: Server closed connection.\n");
                 EXIT(0);
             }
             /* process bytes and print lines as they complete */
@@ -97,10 +116,16 @@ int main(int argc, char *argv[])
                 if (netpos < (BUF - 1)) netbuf[netpos++] = r[i];
                 if (r[i] == '\n') {
                     netbuf[netpos] = 0;
-                    /* check if this is a PING message - hide it from output */
-                    int is_ping = (strstr(netbuf, "PING") != NULL);
-                    /* print the server line (unless it's a PING) */
-                    if (!is_ping) {
+                    /* check if this is a PING message - ELKS-optimized: check start first */
+                    int is_ping = (!strncmp(netbuf, "PING", 4));
+                    /* also check for prefixed PING (e.g., ":server PING") - minimal check */
+                    if (!is_ping && netbuf[0] == ':') {
+                        const char *p = netbuf;
+                        while (*p && *p != ' ') p++;
+                        if (*p == ' ' && !strncmp(p + 1, "PING", 4)) is_ping = 1;
+                    }
+                    /* print the server line (unless it's a PING and debug mode is off) */
+                    if (!is_ping || debug_mode) {
                         fputs(netbuf, stdout);
                         fflush(stdout);
                     }
@@ -117,7 +142,7 @@ int main(int argc, char *argv[])
         if (FD_ISSET(fd_stdin, &rfds)) {
             if (fgets(inbuf, sizeof(inbuf), stdin) == NULL) {
                 /* EOF on stdin */
-                printf("\n** stdin closed **\n");
+                printf("\nError: stdin closed.\n");
                 EXIT(0);
             }
             /* trim newline */
@@ -132,7 +157,7 @@ int main(int argc, char *argv[])
                     snprintf(out, BUF, "PRIVMSG %s :%s\r\n", current_target, inbuf);
                     sendl(sock, out);
                 } else {
-                    printf("No target set. Use /join <channel|nick>\n");
+                    printf("Error: no target set. Use /join <#channel|nick> to set a target.\n");
                 }
             }
             /* after handling user input, redraw prompt */

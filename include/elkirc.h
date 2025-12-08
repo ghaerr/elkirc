@@ -13,5 +13,6 @@
 #endif
 
 extern char current_target[BUF];
+extern int debug_mode;
 
 #endif
