@@ -12,6 +12,21 @@ int ui_init(void) {
     return 0;
 }
 
+/* display welcome banner - ELKS-optimized: simple fputs */
+void ui_show_welcome(void) {
+    fputs("\n", stdout);
+    fputs(".,::::::   :::      :::  .   ::::::::::..     .,-:::::  \n", stdout);
+    fputs(";;;;''''   ;;;      ;;; .;;,.;;;;;;;``;;;;  ,;;;'````'  \n", stdout);
+    fputs(" [[cccc    [[[      [[[[[/'  [[[ [[[,/[[['  [[[         \n", stdout);
+    fputs(" $$\"\"\"\"    $$'     _$$$$,    $$$ $$$$$$c    $$$         \n", stdout);
+    fputs(" 888oo,__ o88oo,.__\"888\"88o, 888 888b \"88bo,`88bo,__,o, \n", stdout);
+    fputs(" \"\"\"\"YUMMM\"\"\"\"YUMMM MMM \"MMP\"MMM MMMM   \"W\"   \"YUMMMMMP\"\n", stdout);
+    fputs("\n", stdout);
+    fputs("ELKIRC v0.1 - https://github.com/sepen/elkirc\n", stdout);
+    fputs("\n", stdout);
+    fflush(stdout);
+}
+
 /* copy small string into current_target via extern */
 void ui_set_context(const char *ctx) {
     if (!ctx || !*ctx) {

@@ -96,19 +96,24 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* if nick is empty, get system username */
+    /* if nick is empty, get system username - ELKS-optimized: prefer getenv, skip getpwuid if possible */
     if (!nick || nick[0] == '\0') {
         const char *env_user = getenv("USER");
         if (env_user && env_user[0] != '\0') {
             nick = env_user;
         } else {
-            /* fallback to getpwuid */
+#ifndef __ELKS__
+            /* fallback to getpwuid - skip on ELKS as it may not be available or be expensive */
             struct passwd *pw = getpwuid(getuid());
             if (pw && pw->pw_name) {
                 nick = pw->pw_name;
             } else {
                 nick = "user"; /* final fallback */
             }
+#else
+            /* ELKS: use simple fallback */
+            nick = "user";
+#endif
         }
     }
 
@@ -116,6 +121,9 @@ int main(int argc, char *argv[])
         fprintf(stderr, "UI init failed\n");
         return 1;
     }
+
+    /* show welcome banner first */
+    ui_show_welcome();
 
     g_sock = -1;
     g_connected = 0;
@@ -620,8 +628,12 @@ int main(int argc, char *argv[])
                 printf("\nError: stdin closed.\n");
                 EXIT(0);
             }
-            /* trim newline */
-            inbuf[strcspn(inbuf, "\r\n")] = 0;
+            /* trim newline - ELKS-optimized: manual loop instead of strcspn */
+            {
+                char *p = inbuf;
+                while (*p && *p != '\r' && *p != '\n') p++;
+                *p = '\0';
+            }
 
             if (inbuf[0] == '/') {
                 process_command(inbuf);

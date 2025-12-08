@@ -22,18 +22,27 @@ void process_command(const char *input)
         const char *port_str = "6667"; /* default port */
 
         if (space) {
-            /* has port */
+            /* has port - ELKS-optimized: manual copy to avoid strncpy overhead */
+            const char *s = rest;
+            char *d = server_buf;
             size_t len = space - rest;
             if (len >= BUF) len = BUF - 1;
-            strncpy(server_buf, rest, len);
-            server_buf[len] = 0;
-            strncpy(port_buf, space + 1, BUF - 1);
-            port_buf[BUF - 1] = 0;
+            while (len-- > 0 && *s) *d++ = *s++;
+            *d = '\0';
+            
+            s = space + 1;
+            d = port_buf;
+            len = BUF - 1;
+            while (len-- > 0 && *s && *s != '\0') *d++ = *s++;
+            *d = '\0';
             port_str = port_buf;
         } else if (*rest) {
-            /* only server, use default port */
-            strncpy(server_buf, rest, BUF - 1);
-            server_buf[BUF - 1] = 0;
+            /* only server, use default port - ELKS-optimized: manual copy */
+            const char *s = rest;
+            char *d = server_buf;
+            size_t len = BUF - 1;
+            while (len-- > 0 && *s) *d++ = *s++;
+            *d = '\0';
         }
 
         if (server_buf[0]) {
@@ -91,8 +100,14 @@ void process_command(const char *input)
                 printf("Error: not connected to any server.\n");
                 return;
             }
-            strncpy(current_target, target, BUF - 1);
-            current_target[BUF - 1] = 0;
+            /* ELKS-optimized: manual copy instead of strncpy */
+            {
+                const char *s = target;
+                char *d = current_target;
+                size_t len = BUF - 1;
+                while (len-- > 0 && *s) *d++ = *s++;
+                *d = '\0';
+            }
 
             char tmp[BUF];
             snprintf(tmp, BUF, "JOIN %s\r\n", target);
@@ -115,8 +130,13 @@ void process_command(const char *input)
             size_t len = space - rest;
             if (len >= BUF) len = BUF - 1;
 
-            strncpy(user, rest, len);
-            user[len] = 0;
+            /* ELKS-optimized: manual copy instead of strncpy */
+            {
+                const char *s = rest;
+                char *d = user;
+                while (len-- > 0 && *s) *d++ = *s++;
+                *d = '\0';
+            }
 
             const char *msg = space + 1;
             char out[BUF];
@@ -192,8 +212,17 @@ void process_command(const char *input)
                 snprintf(tmp, BUF, "PART %s\r\n", target);
                 sendl(g_sock, tmp);
             }
-            /* clear current_target if it matches, set back to nick */
-            if (strcmp(current_target, target) == 0) {
+            /* clear current_target if it matches, set back to nick - ELKS-optimized: manual comparison */
+            const char *ct = current_target;
+            const char *t = target;
+            int match = 1;
+            while (*ct && *t) {
+                if (*ct++ != *t++) {
+                    match = 0;
+                    break;
+                }
+            }
+            if (match && *ct == '\0' && *t == '\0') {
                 ui_set_context(g_nick);
             }
         } else {

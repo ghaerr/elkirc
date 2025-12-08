@@ -6,6 +6,9 @@
 /* Initialize UI (if needed). Returns 0 on success. */
 int ui_init(void);
 
+/* Display welcome banner */
+void ui_show_welcome(void);
+
 /* Set current context (channel or nick), pass a NUL-terminated string */
 /* Example: "#channel", "nick", or empty string "" for no context */
 void ui_set_context(const char *ctx);

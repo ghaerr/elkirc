@@ -13,7 +13,7 @@ An ultra-lightweight, ELKS-first IRC client with broad OS support.
 - **Portable:** Builds on modern gcc (Linux, BSD, macOS, ARM, x86)
 - **Non-blocking I/O:** Uses `select()` for concurrent socket + stdin handling
 - **Zero dependencies:** No external libraries beyond POSIX/BSD sockets
-- **Standard IRC:** Supports `/nick`, `/join`, `/msg`, `/raw`, and auto-PING responses
+- **Standard IRC:** Supports `/connect`, `/nick`, `/join`, `/msg`, etc.
 - **Color support:** Optional ANSI color output for better readability (use `-c` flag)
 
 
@@ -65,7 +65,7 @@ elkirc
 - If `nick` is not provided, elkirc uses your system username (from `$USER` or `getpwuid()`).
 - Once connected, type messages directly to send to the current target (channel or user).
 - Use commands (see below) prefixed with `/`.
-- Press Ctrl+C, `/quit` (disconnect) or `/exit` (quit) to exit.
+- Press Ctrl+C, `/quit` (disconnect) or `/exit` to exit.
 
 
 ## Commands
@@ -83,22 +83,6 @@ Inside `elkirc`, you can use the following commands:
 
 **Note:** When leaving a channel or disconnecting, the target automatically returns to your nick (instead of showing `[*no-target]`).
 
-
-## Color Support
-
-When enabled with `-c` or `--color`, elkirc uses ANSI color codes to enhance readability:
-
-- **Prompt**: Channel/nick in orange, brackets in bold (e.g., `[#channel]`)
-- **User messages**: Your own messages appear in bold
-- **Channel messages**: Nicks in blue, brackets in bold (e.g., `<nick> message`)
-- **NOTICE messages**: Content after `:***` in purple (prefix hidden)
-- **Server numeric replies**: Messages matching `:server.domain XXX nick ` pattern:
-  - **0XX/1XX/2XX**: Content after "nick " in blue (prefix in grey if debug enabled)
-  - **3XX (MOTD/NAMES)**: Content after "nick " in green (prefix in grey if debug enabled)
-  - **4XX/5XX (errors)**: Content after "nick " in red (prefix in grey if debug enabled)
-  - Prefix `:server.domain XXX nick ` is only shown when `-d/--debug` is enabled
-- **JOIN messages**: Entire message in green
-- **Other server messages**: Messages starting with `:` in grey
 
 ## Design Notes
 
