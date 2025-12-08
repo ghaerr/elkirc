@@ -14,5 +14,6 @@
 
 extern char current_target[BUF];
 extern int debug_mode;
+extern int color_mode;
 
 #endif

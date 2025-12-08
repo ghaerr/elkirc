@@ -16,9 +16,38 @@
 #include "network.h"
 #include "elkirc.h"
 
-/* simple connect to host:port, return socket or -1 */
+/* simple connect to host:port, return socket or -1 - ELKS-optimized */
 int connect_simple(const char *host, const char *port)
 {
+#ifdef __ELKS__
+    /* ELKS: use gethostbyname instead of getaddrinfo */
+    struct hostent *he = gethostbyname(host);
+    if (!he) return -1;
+
+    int port_num = 0;
+    const char *p = port;
+    while (*p >= '0' && *p <= '9') {
+        port_num = port_num * 10 + (*p - '0');
+        p++;
+    }
+
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port_num);
+    memcpy(&addr.sin_addr, he->h_addr, he->h_length);
+
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0) return -1;
+
+    if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
+        close(sock);
+        return -1;
+    }
+
+    return sock;
+#else
+    /* modern POSIX: use getaddrinfo */
     struct addrinfo hints, *res;
     memset(&hints, 0, sizeof(hints));
     hints.ai_socktype = SOCK_STREAM;
@@ -40,22 +69,38 @@ int connect_simple(const char *host, const char *port)
 
     freeaddrinfo(res);
     return sock;
+#endif
 }
 
-/* send a null-terminated string over socket */
+/* send a null-terminated string over socket - ELKS-optimized: manual length calc */
 int sendl(int sock, const char *s)
 {
-    int len = strlen(s);
+    const char *p = s;
+    while (*p) p++;
+    int len = p - s;
     return send(sock, s, len, 0);
 }
 
-/* minimal IRC input handler */
+/* minimal IRC input handler - ELKS-optimized: no strncmp */
 void handle_line(int sock, const char *line)
 {
     /* PING :server */
-    if (!strncmp(line, "PING", 4)) {
+    if (line[0] == 'P' && line[1] == 'I' && line[2] == 'N' && line[3] == 'G') {
         char pong[BUF];
-        snprintf(pong, BUF, "PONG %s\r\n", line + 5);
+        const char *ping_arg = line + 5; /* skip "PING " */
+        /* ELKS-optimized: manual string construction instead of snprintf */
+        char *p = pong;
+        *p++ = 'P';
+        *p++ = 'O';
+        *p++ = 'N';
+        *p++ = 'G';
+        *p++ = ' ';
+        while (*ping_arg && (p - pong) < (BUF - 3)) {
+            *p++ = *ping_arg++;
+        }
+        *p++ = '\r';
+        *p++ = '\n';
+        *p = '\0';
         sendl(sock, pong);
         return;
     }

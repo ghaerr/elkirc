@@ -14,6 +14,7 @@ An ultra-lightweight, ELKS-first IRC client with broad OS support.
 - **Non-blocking I/O:** Uses `select()` for concurrent socket + stdin handling
 - **Zero dependencies:** No external libraries beyond POSIX/BSD sockets
 - **Standard IRC:** Supports `/nick`, `/join`, `/msg`, `/raw`, and auto-PING responses
+- **Color support:** Optional ANSI color output for better readability (use `-c` flag)
 
 
 ## Building
@@ -34,13 +35,19 @@ This sets `-D__ELKS__` to use ELKS-specific headers instead of POSIX equivalents
 ## Usage
 
 ```shell
-elkirc <server> <port> <nick>
+elkirc [-d|--debug] [-c|--color] <server> <port> <nick>
 ```
 
 Example:
 ```shell
 elkirc irc.libera.chat 6667 alice
+elkirc -c irc.libera.chat 6667 alice
+elkirc --color --debug irc.libera.chat 6667 alice
 ```
+
+**Options:**
+- `-d, --debug` - Enable debug mode (show PING messages)
+- `-c, --color` - Enable color output for better readability
 
 Once connected:
 - Type messages directly to send to the current target (channel or user)
@@ -60,12 +67,28 @@ Inside `elkirc`, you can use the following commands:
 - `/exit` — Exit without sending QUIT
 
 
+## Color Support
+
+When enabled with `-c` or `--color`, elkirc uses ANSI color codes to enhance readability:
+
+- **Prompt**: Channel/nick in orange, brackets in bold (e.g., `[#channel]`)
+- **User messages**: Your own messages appear in bold
+- **Channel messages**: Nicks in blue, brackets in bold (e.g., `<nick> message`)
+- **NOTICE messages**: Content after `:***` in purple (prefix hidden)
+- **Server numeric replies**: Messages matching `:server.domain XXX nick ` pattern:
+  - **0XX/1XX/2XX**: Content after "nick " in blue (prefix in grey if debug enabled)
+  - **3XX (MOTD/NAMES)**: Content after "nick " in green (prefix in grey if debug enabled)
+  - **4XX/5XX (errors)**: Content after "nick " in red (prefix in grey if debug enabled)
+  - Prefix `:server.domain XXX nick ` is only shown when `-d/--debug` is enabled
+- **JOIN messages**: Entire message in green
+- **Other server messages**: Messages starting with `:` in grey
+
 ## Design Notes
 
 - **Fixed buffers**: All I/O uses 256-byte buffers (defined in `elkirc.h`) to avoid dynamic allocation
 - **ELKS compatibility**: Conditional includes for ELKS vs. modern POSIX headers; no malloc/free in hot paths
 - **Non-blocking**: Server messages arrive immediately without blocking user input
-- **PING/PONG**: Automatic server PING handling to keep connection alive
+- **PING/PONG**: Automatic server PING handling to keep connection alive (hidden by default, use `-d` to show)
 
 
 ## Limitations

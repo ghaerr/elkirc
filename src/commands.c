@@ -3,11 +3,12 @@
 
 #include "commands.h"
 
-/* process user command from input line */
+/* process user command from input line - ELKS-optimized: no strncmp/strcmp */
 void process_command(int sock, const char *input)
 {
     /* /nick <newnick> */
-    if (!strncmp(input, "/nick ", 6)) {
+    if (input[0] == '/' && input[1] == 'n' && input[2] == 'i' &&
+        input[3] == 'c' && input[4] == 'k' && input[5] == ' ') {
         const char *newnick = input + 6;
         if (*newnick) {
             char tmp[BUF];
@@ -18,7 +19,8 @@ void process_command(int sock, const char *input)
     }
 
     /* /join <channel|nick> */
-    if (!strncmp(input, "/join ", 6)) {
+    if (input[0] == '/' && input[1] == 'j' && input[2] == 'o' &&
+        input[3] == 'i' && input[4] == 'n' && input[5] == ' ') {
         const char *target = input + 6;
         if (*target) {
             strncpy(current_target, target, BUF - 1);
@@ -32,7 +34,8 @@ void process_command(int sock, const char *input)
     }
 
     /* /msg <nick> <message> */
-    if (!strncmp(input, "/msg ", 5)) {
+    if (input[0] == '/' && input[1] == 'm' && input[2] == 's' &&
+        input[3] == 'g' && input[4] == ' ') {
         const char *rest = input + 5;
         const char *space = strchr(rest, ' ');
         if (space) {
@@ -52,7 +55,8 @@ void process_command(int sock, const char *input)
     }
 
     /* /raw <text> */
-    if (!strncmp(input, "/raw ", 5)) {
+    if (input[0] == '/' && input[1] == 'r' && input[2] == 'a' &&
+        input[3] == 'w' && input[4] == ' ') {
         const char *text = input + 5;
         if (*text) {
             char tmp[BUF];
@@ -63,13 +67,15 @@ void process_command(int sock, const char *input)
     }
 
     /* /quit */
-    if (!strcmp(input, "/quit")) {
+    if (input[0] == '/' && input[1] == 'q' && input[2] == 'u' &&
+        input[3] == 'i' && input[4] == 't' && input[5] == '\0') {
         sendl(sock, "QUIT :elkirc\r\n");
         EXIT(0);
     }
 
     /* /exit */
-    if (!strcmp(input, "/exit")) {
+    if (input[0] == '/' && input[1] == 'e' && input[2] == 'x' &&
+        input[3] == 'i' && input[4] == 't' && input[5] == '\0') {
         EXIT(0);
     }
     

@@ -5,6 +5,7 @@
 
 /* current_target is declared in elkirc.h and defined in main.c */
 extern char current_target[BUF];
+extern int color_mode;
 
 /* initialize UI - currently no-op, kept for future */
 int ui_init(void) {
@@ -26,10 +27,29 @@ void ui_set_context(const char *ctx) {
 /* draw prompt: show [context] >  or [*no-target] > */
 void ui_draw_prompt(void) {
     if (current_target[0]) {
-        /* show channel or nick */
-        printf("[%s] > ", current_target);
+        /* show channel or nick with colors if enabled */
+        if (color_mode) {
+            ui_color_bold();
+            putchar('[');
+            ui_color_reset();
+            ui_color_orange();
+            fputs(current_target, stdout);
+            ui_color_reset();
+            ui_color_bold();
+            putchar(']');
+            ui_color_reset();
+            putchar(' ');
+        } else {
+            printf("[%s] ", current_target);
+        }
     } else {
-        printf("[*no-target] > ");
+        if (color_mode) {
+            ui_color_bold();
+            printf("[*no-target] ");
+            ui_color_reset();
+        } else {
+            printf("[*no-target] ");
+        }
     }
     fflush(stdout);
 }
@@ -39,4 +59,37 @@ void ui_redraw_after_output(void) {
     /* print a newline and re-draw */
     //putchar('\n');
     ui_draw_prompt();
+}
+
+/* Color functions - ELKS-optimized: simple ANSI codes */
+void ui_color_reset(void) {
+    if (color_mode) fputs("\033[0m", stdout);
+}
+
+void ui_color_purple(void) {
+    if (color_mode) fputs("\033[35m", stdout);
+}
+
+void ui_color_green(void) {
+    if (color_mode) fputs("\033[32m", stdout);
+}
+
+void ui_color_red(void) {
+    if (color_mode) fputs("\033[31m", stdout);
+}
+
+void ui_color_bold(void) {
+    if (color_mode) fputs("\033[1m", stdout);
+}
+
+void ui_color_orange(void) {
+    if (color_mode) fputs("\033[33m", stdout); /* yellow/orange */
+}
+
+void ui_color_blue(void) {
+    if (color_mode) fputs("\033[34m", stdout);
+}
+
+void ui_color_grey(void) {
+    if (color_mode) fputs("\033[90m", stdout); /* bright black / grey */
 }
