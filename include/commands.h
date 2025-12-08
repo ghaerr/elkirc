@@ -4,6 +4,6 @@
 #include "elkirc.h"
 #include "network.h"
 
-void process_command(int sock, const char *input);
+void process_command(const char *input);
 
 #endif

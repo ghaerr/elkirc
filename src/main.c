@@ -9,6 +9,7 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
+#include <pwd.h>
 #else
 /* modern POSIX headers */
 #include <unistd.h>
@@ -17,6 +18,7 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <netdb.h>
+#include <pwd.h>
 #endif
 
 #include "elkirc.h"
@@ -29,12 +31,15 @@ int debug_mode = 0;
 int color_mode = 0;
 /* track color state for long lines that span multiple fragments - ELKS: global instead of static */
 int long_line_color_active = 0; /* 0=none, 1=blue, 2=green, 3=red */
+int g_sock = -1; /* global socket for commands to access */
+int g_connected = 0; /* global connection state */
+const char *g_nick = NULL; /* global nick for commands to access */
 
 int main(int argc, char *argv[])
 {
-    const char *server;
-    const char *port;
-    const char *nick;
+    const char *server = NULL;
+    const char *port = NULL;
+    const char *nick = NULL;
     int arg_idx = 1;
 
     /* check for flags - ELKS-optimized: check short flags first, avoid strcmp */
@@ -46,6 +51,36 @@ int main(int argc, char *argv[])
         } else if (arg[1] == 'c' && arg[2] == '\0') {
             color_mode = 1;
             arg_idx++;
+        } else if (arg[1] == 's' && arg[2] == '\0') {
+            /* -s server */
+            if (argc > arg_idx + 1) {
+                server = argv[arg_idx + 1];
+                arg_idx += 2;
+            } else {
+                printf("Error: -s requires a server argument\n");
+                printf("Usage: %s [-d|--debug] [-c|--color] [-s server] [-p port] [-n nick]\n", argv[0]);
+                return 1;
+            }
+        } else if (arg[1] == 'p' && arg[2] == '\0') {
+            /* -p port */
+            if (argc > arg_idx + 1) {
+                port = argv[arg_idx + 1];
+                arg_idx += 2;
+            } else {
+                printf("Error: -p requires a port argument\n");
+                printf("Usage: %s [-d|--debug] [-c|--color] [-s server] [-p port] [-n nick]\n", argv[0]);
+                return 1;
+            }
+        } else if (arg[1] == 'n' && arg[2] == '\0') {
+            /* -n nick */
+            if (argc > arg_idx + 1) {
+                nick = argv[arg_idx + 1];
+                arg_idx += 2;
+            } else {
+                printf("Error: -n requires a nick argument\n");
+                printf("Usage: %s [-d|--debug] [-c|--color] [-s server] [-p port] [-n nick]\n", argv[0]);
+                return 1;
+            }
         } else if (arg[1] == '-' && arg[2] == 'd' && arg[3] == 'e' &&
                    arg[4] == 'b' && arg[5] == 'u' && arg[6] == 'g' && arg[7] == '\0') {
             debug_mode = 1;
@@ -55,41 +90,61 @@ int main(int argc, char *argv[])
             color_mode = 1;
             arg_idx++;
         } else {
-            break; /* unknown flag, treat as server */
+            printf("Error: unknown flag '%s'\n", arg);
+            printf("Usage: %s [-d|--debug] [-c|--color] [-s server] [-p port] [-n nick]\n", argv[0]);
+            return 1;
         }
     }
 
-    if (argc < (arg_idx + 3)) {
-        printf("Usage: %s [-d|--debug] [-c|--color] <server> <port> <nick>\n", argv[0]);
-        return 1;
+    /* if nick is empty, get system username */
+    if (!nick || nick[0] == '\0') {
+        const char *env_user = getenv("USER");
+        if (env_user && env_user[0] != '\0') {
+            nick = env_user;
+        } else {
+            /* fallback to getpwuid */
+            struct passwd *pw = getpwuid(getuid());
+            if (pw && pw->pw_name) {
+                nick = pw->pw_name;
+            } else {
+                nick = "user"; /* final fallback */
+            }
+        }
     }
-
-    server = argv[arg_idx];
-    port   = argv[arg_idx + 1];
-    nick   = argv[arg_idx + 2];
 
     if (ui_init() != 0) {
         fprintf(stderr, "UI init failed\n");
         return 1;
     }
 
-    int sock = connect_simple(server, port);
-    if (sock < 0) {
-        printf("Error: Failed to connect to %s:%s.\n", server, port);
-        return 1;
-    }
+    g_sock = -1;
+    g_connected = 0;
+    g_nick = nick;
 
-    printf("Connected to %s:%s.\n", server, port);
+    /* only connect if server is provided */
+    if (server && server[0] != '\0') {
+        /* use default port 6667 if not specified */
+        const char *connect_port = (port && port[0] != '\0') ? port : "6667";
 
-    printf("Registering with the server...\n");
-    {
-        char tmp[BUF];
-        /* NICK */
-        snprintf(tmp, BUF, "NICK %s\r\n", nick);
-        sendl(sock, tmp);
-        /* USER */
-        snprintf(tmp, BUF, "USER %s 0 * :elkirc\r\n", nick);
-        sendl(sock, tmp);
+        g_sock = connect_simple(server, connect_port);
+        if (g_sock < 0) {
+            printf("Error: Failed to connect to %s:%s.\n", server, connect_port);
+            return 1;
+        }
+
+        printf("Connected to %s:%s.\n", server, connect_port);
+
+        printf("Registering with the server...\n");
+        {
+            char tmp[BUF];
+            /* NICK */
+            snprintf(tmp, BUF, "NICK %s\r\n", nick);
+            sendl(g_sock, tmp);
+            /* USER */
+            snprintf(tmp, BUF, "USER %s 0 * :elkirc\r\n", nick);
+            sendl(g_sock, tmp);
+        }
+        g_connected = 1;
     }
 
     /* default target = nick (private) */
@@ -97,7 +152,6 @@ int main(int argc, char *argv[])
 
     /* set up select() */
     int fd_stdin = fileno(stdin);
-    int maxfd = (sock > fd_stdin) ? sock : fd_stdin;
 
     char netbuf[BUF];
     int netpos = 0;
@@ -107,19 +161,27 @@ int main(int argc, char *argv[])
     ui_draw_prompt();
 
     while (1) {
+        /* recalculate maxfd each iteration in case connection changed */
+        int maxfd = fd_stdin;
+        if (g_connected && g_sock > fd_stdin) {
+            maxfd = g_sock;
+        }
+
         fd_set rfds;
         FD_ZERO(&rfds);
         FD_SET(fd_stdin, &rfds);
-        FD_SET(sock, &rfds);
+        if (g_connected) {
+            FD_SET(g_sock, &rfds);
+        }
 
         /* no timeout - wait until input on either */
         int ready = select(maxfd + 1, &rfds, NULL, NULL, NULL);
         if (ready <= 0) continue;
 
         /* socket ready? read and print immediately */
-        if (FD_ISSET(sock, &rfds)) {
+        if (g_connected && FD_ISSET(g_sock, &rfds)) {
             char r[64];
-            int n = recv(sock, r, sizeof(r) - 1, 0);
+            int n = recv(g_sock, r, sizeof(r) - 1, 0);
             if (n <= 0) {
                 printf("\nError: Server closed connection.\n");
                 EXIT(0);
@@ -546,7 +608,7 @@ int main(int argc, char *argv[])
                     }
                     netpos = 0;
                     /* let network handler inspect (PING) */
-                    handle_line(sock, netbuf);
+                    handle_line(g_sock, netbuf);
                 }
             }
         }
@@ -562,14 +624,16 @@ int main(int argc, char *argv[])
             inbuf[strcspn(inbuf, "\r\n")] = 0;
 
             if (inbuf[0] == '/') {
-                process_command(sock, inbuf);
+                process_command(inbuf);
             } else {
                 /* send normal message to current_target */
-                if (current_target[0]) {
+                if (g_connected && current_target[0]) {
                     char out[BUF];
                     snprintf(out, BUF, "PRIVMSG %s :%s\r\n", current_target, inbuf);
-                    sendl(sock, out);
+                    sendl(g_sock, out);
                     /* don't echo here - server will send it back as PRIVMSG and we'll show it in bold */
+                } else if (!g_connected) {
+                    printf("Error: not connected to any server. Use /connect <server> [port] to connect.\n");
                 } else {
                     printf("Error: no target set. Use /join <#channel|nick> to set a target.\n");
                 }
