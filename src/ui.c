@@ -102,7 +102,7 @@ void ui_color_orange(void) {
 }
 
 void ui_color_blue(void) {
-    if (color_mode) fputs("\033[34m", stdout);
+    if (color_mode) fputs("\033[1;34m", stdout); /* blue */
 }
 
 void ui_color_grey(void) {
