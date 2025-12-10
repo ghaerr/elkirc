@@ -26,32 +26,6 @@ Enable debug mode. When enabled, PING messages from the server are displayed. By
 .TP
 .BR -c ", " --color
 Enable color output using ANSI escape codes. Colors enhance readability:
-.RS
-.IP \(bu 2
-Prompt: Channel/nick in orange, brackets in bold
-.IP \(bu 2
-User messages: Your own messages in bold
-.IP \(bu 2
-Channel messages: Nicks in blue, brackets in bold
-.IP \(bu 2
-NOTICE messages: Content after \fB:***\fR in purple (prefix hidden)
-.IP \(bu 2
-Server numeric replies (matching \fB:server.domain XXX nick \fR pattern):
-.RS
-.IP \(bu 2
-0XX/1XX/2XX: Content after "nick " in blue
-.IP \(bu 2
-3XX (MOTD/NAMES): Content after "nick " in green
-.IP \(bu 2
-4XX/5XX (errors): Content after "nick " in red
-.IP \(bu 2
-Prefix \fB:server.domain XXX nick \fR shown only when \fB-d/--debug\fR is enabled (in grey)
-.RE
-.IP \(bu 2
-JOIN messages: Entire message in green
-.IP \(bu 2
-Other server messages: Messages starting with \fB:\fR in grey
-.RE
 
 .TP
 .BR -s ", " server
