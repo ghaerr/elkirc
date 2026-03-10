@@ -2,8 +2,8 @@
 #include <string.h>
 
 #ifdef __ELKS__
-#include <bsd/socket.h>
 #include <unistd.h>
+#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #else

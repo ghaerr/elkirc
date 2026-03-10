@@ -4,8 +4,8 @@
 
 #ifdef __ELKS__
 /* ELKS headers */
-#include <bsd/socket.h>
 #include <unistd.h>
+#include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
