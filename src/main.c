@@ -5,6 +5,7 @@
 #ifdef __ELKS__
 /* ELKS headers */
 #include <unistd.h>
+#include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/time.h>
@@ -13,6 +14,7 @@
 #else
 /* modern POSIX headers */
 #include <unistd.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
@@ -192,7 +194,7 @@ int main(int argc, char *argv[])
             int n = recv(g_sock, r, sizeof(r) - 1, 0);
             if (n <= 0) {
                 printf("\nError: Server closed connection.\n");
-                EXIT(0);
+                exit(0);
             }
             /* process bytes and print lines as they complete */
             int i;
@@ -626,7 +628,7 @@ int main(int argc, char *argv[])
             if (fgets(inbuf, sizeof(inbuf), stdin) == NULL) {
                 /* EOF on stdin */
                 printf("\nError: stdin closed.\n");
-                EXIT(0);
+                exit(0);
             }
             /* trim newline - ELKS-optimized: manual loop instead of strcspn */
             {

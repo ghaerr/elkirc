@@ -20,9 +20,9 @@
 int connect_simple(const char *host, const char *port)
 {
 #ifdef __ELKS__
-    /* ELKS: use gethostbyname instead of getaddrinfo */
-    struct hostent *he = gethostbyname(host);
-    if (!he) return -1;
+    /* ELKS: use in_gethostbyname instead of getaddrinfo */
+    ipaddr_t ipaddr = in_gethostbyname(host);
+    if (!ipaddr) return -1;
 
     int port_num = 0;
     const char *p = port;
@@ -31,16 +31,22 @@ int connect_simple(const char *host, const char *port)
         p++;
     }
 
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port_num);
-    memcpy(&addr.sin_addr, he->h_addr, he->h_length);
-
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) return -1;
 
-    if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = 0;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        close(sock);
+        return -1;
+    }
+
+    addr.sin_port = htons(port_num);
+    memcpy(&addr.sin_addr, &ipaddr, sizeof(ipaddr));
+    if (in_connect(sock, (struct sockaddr *)&addr, sizeof(addr), 10) != 0) {
         close(sock);
         return -1;
     }
@@ -107,3 +113,15 @@ void handle_line(int sock, const char *line)
 
     /* nothing else handled for now */
 }
+
+#ifdef __ELKS__
+ssize_t send(int socket, const void *buffer, size_t length, int flags)
+{
+    return write(socket, buffer, length);
+}
+
+ssize_t recv(int socket, void *buffer, size_t length, int flags)
+{
+    return read(socket, buffer, length);
+}
+#endif

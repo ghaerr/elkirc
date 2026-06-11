@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "commands.h"
 #include "elkirc.h"
@@ -270,7 +271,7 @@ void process_command(const char *input)
             sendl(g_sock, "QUIT :elkirc\r\n");
             close(g_sock);
         }
-        EXIT(0);
+        exit(0);
     }
 
     printf("Unknown command: %s\n", input);

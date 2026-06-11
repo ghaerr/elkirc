@@ -2,11 +2,13 @@
 # For ELKS compilation:   make ELKS=1
 # For modern Unix:        make
 
+ifdef ELKS
+CC = ia16-elf-gcc
+CFLAGS = -melks-libc -mtune=i8086 -Os -mcmodel=small -D__ELKS__
+CFLAGS += -Iinclude -I$ELKSDIR/libc/include -I$ELKSDIR/elks/include
+else
 CC = cc
 CFLAGS = -O2 -Iinclude
-
-ifdef ELKS
-CFLAGS += -D__ELKS__
 endif
 
 SRC = src/main.c src/network.c src/commands.c src/ui.c
